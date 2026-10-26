@@ -1,8 +1,398 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lumen &amp; Loom (ShopPulse AI demo)</title></head>
-<body style="font-family:system-ui;max-width:640px;margin:15vh auto;padding:0 20px">
-<h1>Lumen &amp; Loom</h1>
-<p>Demo storefront. Try the chat button: "Where is order SP-10234?" (email: asha@example.com).</p>
-<script src="/widget.js" data-store="Lumen &amp; Loom"></script>
-</body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen &amp; Loom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#F3F4F1; --paper:#FFFFFF; --ink:#14213D; --muted:#5B6578; --line:#DCE0E4;
+  --glow:#F2A541; --glow-soft:#FCE9C9; --thread:#1F6F78; --thread-soft:#DCEEF0;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;line-height:1.08;letter-spacing:-.02em}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+:focus-visible{outline:3px solid var(--thread);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* header */
+header{position:sticky;top:0;z-index:30;background:rgba(243,244,241,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:68px}
+.logo{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.3rem;display:flex;align-items:center;gap:10px}
+.logo i{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE2A8,var(--glow) 60%,#D98A1F);box-shadow:0 0 18px rgba(242,165,65,.7)}
+nav ul{display:flex;gap:30px;list-style:none;font-weight:500;font-size:.95rem;color:var(--muted)}
+nav a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;font-weight:600;font-size:.95rem;transition:transform .15s,background .2s}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-primary:hover{background:#0c1530;transform:translateY(-1px)}
+.btn-ghost{border:1.5px solid var(--ink)}
+.btn-ghost:hover{background:var(--ink);color:#fff}
+.btn-glow{background:var(--glow);color:var(--ink)}
+.btn-glow:hover{background:#f7b560}
+
+/* hero */
+.hero{padding:64px 0 40px;display:grid;grid-template-columns:1fr 1.15fr;gap:48px;align-items:start}
+.hero h1{font-size:clamp(2.6rem,5.2vw,4.4rem);font-weight:800}
+.hero p.lead{margin:22px 0 28px;font-size:1.12rem;color:var(--muted);max-width:44ch}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+.trust{display:flex;gap:28px;margin-top:40px;color:var(--muted);font-size:.9rem}
+.trust b{display:block;font-family:'Bricolage Grotesque';font-size:1.5rem;color:var(--ink)}
+
+/* tracker */
+.tracker{background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 60px -30px rgba(20,33,61,.35);overflow:hidden}
+.tracker-head{padding:22px 24px 18px;border-bottom:1px solid var(--line)}
+.tracker-head h2{font-size:1.35rem;margin-bottom:12px}
+.track-form{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px}
+.track-form input{padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--bg);min-width:0}
+.track-form input:focus{border-color:var(--thread);outline:none;background:#fff}
+.track-hint{font-size:.82rem;color:var(--muted);margin-top:8px}
+.track-hint button{color:var(--thread);font-weight:600;text-decoration:underline}
+.track-error{display:none;margin-top:10px;font-size:.9rem;color:#9B2C2C;background:#FBE9E9;padding:10px 12px;border-radius:8px}
+#map{height:300px;width:100%;background:#e8ecef}
+.map-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--thread-soft);font-size:.9rem;flex-wrap:wrap}
+.map-bar strong{color:var(--thread)}
+.gps{background:var(--thread);color:#fff;padding:8px 14px;border-radius:999px;font-weight:600;font-size:.85rem}
+.gps:hover{background:#185a62}
+.result{padding:22px 24px 26px}
+.result-top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.result-top small{display:block;color:var(--muted);font-size:.8rem}
+.result-top span.v{font-weight:600}
+.badge{display:inline-block;background:var(--glow-soft);color:#8A5A0B;font-weight:600;font-size:.82rem;padding:4px 11px;border-radius:999px}
+.steps{list-style:none;position:relative}
+.steps li{position:relative;padding:0 0 18px 34px;font-size:.93rem}
+.steps li::before{content:"";position:absolute;left:8px;top:20px;bottom:-2px;width:2px;background:var(--line)}
+.steps li:last-child::before{display:none}
+.steps li::after{content:"";position:absolute;left:0;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--line)}
+.steps li.done::after{background:var(--thread);border-color:var(--thread)}
+.steps li.done::before{background:var(--thread)}
+.steps li.now::after{background:var(--glow);border-color:var(--glow);box-shadow:0 0 0 6px var(--glow-soft)}
+.steps b{display:block;font-weight:600}
+.steps span{color:var(--muted);font-size:.85rem}
+
+/* shop */
+section.block{padding:72px 0}
+.sec-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:32px;gap:20px;flex-wrap:wrap}
+.sec-head h2{font-size:clamp(1.9rem,3.4vw,2.7rem)}
+.sec-head p{color:var(--muted);max-width:42ch}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.prod{display:flex;flex-direction:column}
+.thumb{aspect-ratio:4/5;border-radius:var(--radius);position:relative;overflow:hidden;margin-bottom:14px;transition:transform .25s}
+.prod:hover .thumb{transform:translateY(-4px)}
+.prod h3{font-size:1.05rem;font-weight:700;letter-spacing:-.01em}
+.prod .meta{color:var(--muted);font-size:.88rem}
+.prod .price{margin-top:6px;font-weight:600}
+.tag{position:absolute;top:12px;left:12px;background:#fff;font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:999px}
+/* lamp */
+.t-lamp{background:linear-gradient(#1b2a4d,#14213D)}
+.t-lamp::before{content:"";position:absolute;left:50%;top:22%;width:46%;aspect-ratio:1;transform:translateX(-50%);border-radius:50% 50% 40% 40%;background:radial-gradient(circle at 50% 70%,#FFF1CF,var(--glow) 55%,#C97F18);box-shadow:0 0 70px 20px rgba(242,165,65,.5)}
+.t-lamp::after{content:"";position:absolute;left:50%;bottom:12%;width:4px;height:26%;background:#8d98b3;transform:translateX(-50%)}
+/* weave */
+.t-weave{background:repeating-linear-gradient(90deg,#1F6F78 0 10px,#2a8791 10px 20px),#1F6F78}
+.t-weave::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.22) 0 6px,transparent 6px 14px)}
+.t-throw{background:repeating-linear-gradient(135deg,#F2A541 0 14px,#f7c677 14px 28px)}
+.t-throw::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(20,33,61,.18) 0 3px,transparent 3px 18px)}
+.t-shade{background:linear-gradient(#DCEEF0,#b9dadd)}
+.t-shade::before{content:"";position:absolute;left:50%;top:18%;width:56%;height:44%;transform:translateX(-50%);clip-path:polygon(20% 0,80% 0,100% 100%,0 100%);background:repeating-linear-gradient(90deg,#fff 0 5px,#f1f5f6 5px 10px);box-shadow:inset 0 -20px 30px rgba(242,165,65,.4)}
+.t-shade::after{content:"";position:absolute;left:50%;bottom:10%;width:5px;height:30%;background:var(--ink);transform:translateX(-50%)}
+
+.policy{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);overflow:hidden}
+.policy div{padding:28px}
+.policy div+div{border-left:1px solid var(--line)}
+.policy h3{font-size:1.15rem;margin-bottom:8px}
+.policy p{color:var(--muted);font-size:.93rem}
+footer{background:var(--ink);color:#c9d0e0;padding:48px 0 36px;margin-top:40px}
+footer .row{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+footer .logo{color:#fff}
+footer small{display:block;margin-top:28px;color:#8a95b0}
+
+/* chat */
+.chat-launch{position:fixed;right:24px;bottom:24px;z-index:50;display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;padding:14px 20px;border-radius:999px;font-weight:600;box-shadow:0 14px 34px -10px rgba(20,33,61,.7)}
+.chat-launch .dot{width:10px;height:10px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 4px rgba(74,222,128,.25)}
+.chat{position:fixed;right:24px;bottom:24px;z-index:60;width:380px;max-width:calc(100vw - 32px);height:600px;max-height:calc(100vh - 48px);background:var(--paper);border-radius:20px;box-shadow:0 30px 80px -20px rgba(20,33,61,.5);display:none;flex-direction:column;overflow:hidden;border:1px solid var(--line)}
+.chat.open{display:flex;animation:pop .22s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}}
+.chat-head{background:var(--ink);color:#fff;padding:16px 18px;display:flex;align-items:center;gap:12px}
+.avatar{width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE2A8,var(--glow));flex:none;display:grid;place-items:center;font-family:'Bricolage Grotesque';font-weight:800;color:var(--ink)}
+.chat-head b{display:block;font-size:1rem}
+.chat-head span{font-size:.8rem;color:#aab4cc}
+.chat-head button{margin-left:auto;width:32px;height:32px;border-radius:50%;font-size:1.2rem;color:#c9d0e0}
+.chat-head button:hover{background:rgba(255,255,255,.12)}
+.msgs{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.m{max-width:84%;padding:11px 14px;border-radius:16px;font-size:.93rem;white-space:pre-line}
+.m.bot{background:#fff;border:1px solid var(--line);border-top-left-radius:4px;align-self:flex-start}
+.m.me{background:var(--thread);color:#fff;border-top-right-radius:4px;align-self:flex-end}
+.m .act{display:inline-block;margin-top:8px;background:var(--glow-soft);color:#8A5A0B;font-weight:600;padding:6px 12px;border-radius:999px;font-size:.84rem}
+.typing{display:flex;gap:4px;padding:14px}
+.typing i{width:7px;height:7px;border-radius:50%;background:#9aa4b8;animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 12px;background:var(--bg)}
+.chips button{border:1.5px solid var(--line);background:#fff;padding:7px 12px;border-radius:999px;font-size:.84rem;font-weight:500}
+.chips button:hover{border-color:var(--thread);color:var(--thread)}
+.chat-form{display:flex;gap:10px;padding:14px;border-top:1px solid var(--line);background:#fff}
+.chat-form input{flex:1;padding:12px 14px;border:1.5px solid var(--line);border-radius:999px;font:inherit;min-width:0}
+.chat-form input:focus{border-color:var(--thread);outline:none}
+.chat-form button{background:var(--glow);width:44px;height:44px;border-radius:50%;font-size:1.1rem;font-weight:700}
+.chat-form button:hover{background:#f7b560}
+
+@media(max-width:980px){
+  .hero{grid-template-columns:1fr}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  nav ul{display:none}
+  .policy{grid-template-columns:1fr}.policy div+div{border-left:0;border-top:1px solid var(--line)}
+  .track-form{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#"><i></i>Lumen &amp; Loom</a>
+    <nav aria-label="Main"><ul>
+      <li><a href="#shop">Shop</a></li>
+      <li><a href="#track">Track order</a></li>
+      <li><a href="#policies">Shipping &amp; returns</a></li>
+    </ul></nav>
+    <a class="btn btn-primary" href="#track">Track an order</a>
+  </div>
+</header>
+
+<main>
+<div class="wrap hero" id="track">
+  <div>
+    <h1>Light and linen, made slowly in India.</h1>
+    <p class="lead">Hand-finished lamps and woven textiles for rooms that feel lived in. Free delivery over ₹2,500, and every parcel tracked to your door.</p>
+    <div class="cta">
+      <a class="btn btn-glow" href="#shop">Shop the collection</a>
+      <button class="btn btn-ghost" id="askChat">Ask support</button>
+    </div>
+    <div class="trust">
+      <div><b>4–6 days</b>Delivery across India</div>
+      <div><b>30 days</b>Easy returns</div>
+      <div><b>Live</b>Parcel tracking</div>
+    </div>
+  </div>
+
+  <div class="tracker">
+    <div class="tracker-head">
+      <h2>Where is my order?</h2>
+      <form class="track-form" id="trackForm">
+        <input id="oid" placeholder="Order ID, e.g. SP-10234" aria-label="Order ID" autocomplete="off" required>
+        <input id="oem" type="email" placeholder="Email used at checkout" aria-label="Email" required>
+        <button class="btn btn-primary" type="submit">Track</button>
+      </form>
+      <p class="track-hint">No order handy? <button type="button" id="demoFill">Use the demo order</button></p>
+      <div class="track-error" id="trackErr" role="alert"></div>
+    </div>
+    <div id="map" aria-label="Delivery map"></div>
+    <div class="map-bar">
+      <span id="mapInfo">Enter an order to see the route.</span>
+      <button class="gps" id="gpsBtn" type="button">Use my location</button>
+    </div>
+    <div class="result" id="result" hidden></div>
+  </div>
+</div>
+
+<section class="block" id="shop">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>This season's pieces</h2>
+      <p>Small runs from partner workshops in Jaipur, Bhagalpur and Santiniketan.</p>
+    </div>
+    <div class="grid">
+      <a class="prod" href="#"><div class="thumb t-lamp"><span class="tag">Bestseller</span></div><h3>Dusk table lamp</h3><div class="meta">Brass, hand-blown glass</div><div class="price">₹4,800</div></a>
+      <a class="prod" href="#"><div class="thumb t-weave"></div><h3>Ganga cotton throw</h3><div class="meta">Handloom, 130 × 180 cm</div><div class="price">₹3,200</div></a>
+      <a class="prod" href="#"><div class="thumb t-throw"><span class="tag">New</span></div><h3>Marigold wool blanket</h3><div class="meta">Merino blend, double</div><div class="price">₹5,600</div></a>
+      <a class="prod" href="#"><div class="thumb t-shade"></div><h3>Linen floor lamp</h3><div class="meta">Natural linen shade</div><div class="price">₹7,450</div></a>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="policies" style="padding-top:0">
+  <div class="wrap">
+    <div class="policy">
+      <div><h3>Shipping</h3><p>Orders leave our Jaipur warehouse in 48 hours. You get a BlueDart tracking number by email and SMS.</p></div>
+      <div><h3>Returns</h3><p>Return unused items within 30 days. We collect from your door and refund within 5 working days.</p></div>
+      <div><h3>Care</h3><p>Every piece ships with care notes. Questions about your order? Open the chat in the corner.</p></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <div class="logo"><i></i>Lumen &amp; Loom</div>
+      <div>support@lumenandloom.example</div>
+    </div>
+    <small>Demo storefront. Orders and tracking data on this page are sample data.</small>
+  </div>
+</footer>
+
+<!-- Chat -->
+<button class="chat-launch" id="launch" aria-label="Open support chat"><span class="dot"></span>Chat with us</button>
+<section class="chat" id="chat" aria-label="Support chat">
+  <div class="chat-head">
+    <div class="avatar">L</div>
+    <div><b>Lumen &amp; Loom support</b><span>Orders, returns and products</span></div>
+    <button id="closeChat" aria-label="Close chat">×</button>
+  </div>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <div class="chips" id="chips">
+    <button>Track my order</button><button>Return policy</button><button>Suggest a gift</button>
+  </div>
+  <form class="chat-form" id="chatForm">
+    <input id="chatIn" placeholder="Type your message" aria-label="Message" autocomplete="off">
+    <button aria-label="Send">➤</button>
+  </form>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ---------- Config: point this at your real backend ---------- */
+const CHAT_API  = '/api/chat';          // POST {message, history} -> {reply, orderId?}
+const ORDER_API = '/api/orders';        // GET  ?id=SP-10234&email=... -> order JSON (shape below)
+
+/* Demo data, used when the API is not reachable */
+const DEMO = {
+  'SP-10234': {
+    email:'asha@example.com', status:'Out for delivery', carrier:'BlueDart', tracking:'BD99120344', eta:'27 Oct 2026',
+    destination:{name:'Delivery address', lat:22.5726, lng:88.3639},
+    courier:{lat:22.6150, lng:88.4050},
+    route:[[26.9124,75.7873],[21.1458,79.0882],[20.2961,85.8245],[22.3000,87.3000],[22.5726,88.3639]],
+    events:[
+      {t:'Order placed', d:'22 Oct, 11:42', done:true},
+      {t:'Packed at Jaipur warehouse', d:'23 Oct, 16:05', done:true},
+      {t:'Shipped with BlueDart', d:'24 Oct, 09:20', done:true},
+      {t:'Reached Bhubaneswar hub', d:'26 Oct, 06:48', done:true},
+      {t:'Out for delivery', d:'27 Oct, 08:10', now:true},
+      {t:'Delivered', d:'Expected today', done:false}
+    ]
+  }
+};
+
+/* ---------- Map ---------- */
+const map = L.map('map',{scrollWheelZoom:false}).setView([22.5,82],4.4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
+const dot = (c,s=16)=>L.divIcon({className:'',html:`<div style="width:${s}px;height:${s}px;border-radius:50%;background:${c};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`,iconSize:[s,s],iconAnchor:[s/2,s/2]});
+let layers=[], userMarker=null, current=null;
+
+function km(a,b){const R=6371,t=x=>x*Math.PI/180;const dLa=t(b.lat-a.lat),dLo=t(b.lng-a.lng);
+  const h=Math.sin(dLa/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+
+function drawOrder(o){
+  layers.forEach(l=>map.removeLayer(l)); layers=[];
+  const line=L.polyline(o.route,{color:'#1F6F78',weight:4,opacity:.8,dashArray:'2 8'}).addTo(map);
+  const dest=L.marker([o.destination.lat,o.destination.lng],{icon:dot('#14213D',18)}).addTo(map).bindPopup('Delivery address');
+  const cour=L.marker([o.courier.lat,o.courier.lng],{icon:dot('#F2A541',22)}).addTo(map).bindPopup(`${o.carrier} courier`);
+  layers.push(line,dest,cour);
+  map.fitBounds(line.getBounds().pad(.12));
+  const d=km(o.courier,o.destination);
+  document.getElementById('mapInfo').innerHTML=`Courier is <strong>${d.toFixed(1)} km</strong> from you`;
+  setTimeout(()=>map.invalidateSize(),50);
+}
+
+document.getElementById('gpsBtn').onclick=()=>{
+  const info=document.getElementById('mapInfo');
+  if(!navigator.geolocation){info.textContent='Location is not supported in this browser.';return;}
+  info.textContent='Finding your location…';
+  navigator.geolocation.getCurrentPosition(p=>{
+    const me={lat:p.coords.latitude,lng:p.coords.longitude};
+    if(userMarker) map.removeLayer(userMarker);
+    userMarker=L.marker([me.lat,me.lng],{icon:dot('#2563EB',18)}).addTo(map).bindPopup('You are here');
+    if(current){
+      const d=km(current.courier,me);
+      info.innerHTML=`Courier is <strong>${d.toFixed(1)} km</strong> from your current location`;
+      map.fitBounds(L.latLngBounds([[me.lat,me.lng],[current.courier.lat,current.courier.lng]]).pad(.4));
+    } else { info.textContent='Location found. Track an order to see the courier.'; map.setView([me.lat,me.lng],12); }
+  },e=>{
+    info.textContent = e.code===1 ? 'Location blocked. Allow it in your browser settings and try again.' : 'Could not get your location. Try again.';
+  },{enableHighAccuracy:true,timeout:10000});
+};
+
+/* ---------- Tracking ---------- */
+async function getOrder(id,email){
+  id=id.trim().toUpperCase();
+  try{
+    const r=await fetch(`${ORDER_API}?id=${encodeURIComponent(id)}&email=${encodeURIComponent(email)}`);
+    if(r.ok) return await r.json();
+    if(r.status===404) return null;
+  }catch(e){}
+  const o=DEMO[id]; return (o && o.email.toLowerCase()===email.trim().toLowerCase()) ? o : null;
+}
+function render(id,o){
+  current=o; drawOrder(o);
+  const res=document.getElementById('result'); res.hidden=false;
+  res.innerHTML=`<div class="result-top">
+    <div><small>Order</small><span class="v">${id.toUpperCase()}</span></div>
+    <div><small>${o.carrier} tracking</small><span class="v">${o.tracking}</span></div>
+    <div><small>Estimated arrival</small><span class="v">${o.eta}</span></div>
+    <div><span class="badge">${o.status}</span></div></div>
+    <ol class="steps">${o.events.map(e=>`<li class="${e.done?'done':''} ${e.now?'now':''}"><b>${e.t}</b><span>${e.d}</span></li>`).join('')}</ol>`;
+}
+document.getElementById('trackForm').onsubmit=async e=>{
+  e.preventDefault();
+  const id=oid.value, em=oem.value, err=document.getElementById('trackErr');
+  err.style.display='none';
+  const o=await getOrder(id,em);
+  if(!o){err.textContent='We could not find that order. Check the order ID and the email used at checkout.';err.style.display='block';return;}
+  render(id,o);
+};
+demoFill.onclick=()=>{oid.value='SP-10234';oem.value='asha@example.com';trackForm.requestSubmit();};
+
+/* ---------- Chat ---------- */
+const chat=document.getElementById('chat'), msgs=document.getElementById('msgs'), history=[];
+function add(text,who,action){
+  const d=document.createElement('div'); d.className='m '+who; d.textContent=text;
+  if(action){const a=document.createElement('button');a.className='act';a.textContent=action.label;a.onclick=action.fn;d.appendChild(document.createElement('br'));d.appendChild(a);}
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; return d;
+}
+function typing(){const d=document.createElement('div');d.className='m bot typing';d.innerHTML='<i></i><i></i><i></i>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d;}
+function openChat(){chat.classList.add('open');launch.style.display='none';chatIn.focus();}
+launch.onclick=openChat; askChat.onclick=openChat;
+closeChat.onclick=()=>{chat.classList.remove('open');launch.style.display='flex';};
+add('Hi, I can track an order, explain our policies or suggest products. What do you need?','bot');
+
+async function localReply(text){
+  const m=text.match(/SP-\d+/i), em=text.match(/[\w.+-]+@[\w-]+\.[\w.]+/);
+  if(m){
+    const id=m[0].toUpperCase();
+    if(!em) return {reply:`I can look up ${id}. What email did you use at checkout?`};
+    const o=await getOrder(id,em[0]);
+    if(!o) return {reply:`I could not find ${id} with that email. Please check both and try again.`};
+    return {reply:`${id} is ${o.status.toLowerCase()} with ${o.carrier} (tracking ${o.tracking}). Expected ${o.eta}.`, order:[id,em[0],o]};
+  }
+  if(/return|refund/i.test(text)) return {reply:'You can return unused items within 30 days. We collect from your door and refund within 5 working days.'};
+  if(/ship|deliver/i.test(text)) return {reply:'Orders leave our Jaipur warehouse within 48 hours and arrive in 4 to 6 days. Delivery is free over ₹2,500.'};
+  if(/gift|suggest|recommend|lamp|throw|blanket/i.test(text)) return {reply:'For gifts, the Dusk table lamp (₹4,800) is our bestseller, and the Ganga cotton throw (₹3,200) is easy to love. Want something under a certain budget?'};
+  if(/track|order|where/i.test(text)) return {reply:'Send me your order ID and the email used at checkout, for example: SP-10234 and asha@example.com.'};
+  return {reply:'I can help with orders, returns, shipping and product ideas. Which one would you like?'};
+}
+async function reply(text){
+  history.push({role:'user',content:text});
+  const t=typing(); let out;
+  try{
+    const r=await fetch(CHAT_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history})});
+    if(!r.ok) throw 0; out=await r.json();
+  }catch(e){ await new Promise(r=>setTimeout(r,700)); out=await localReply(text); }
+  t.remove();
+  history.push({role:'assistant',content:out.reply});
+  add(out.reply,'bot', out.order?{label:'Show on map',fn:()=>{
+    const [id,em,o]=out.order; oid.value=id; oem.value=em; render(id,o);
+    document.getElementById('track').scrollIntoView({behavior:'smooth'});
+  }}:null);
+}
+chatForm.onsubmit=e=>{e.preventDefault();const v=chatIn.value.trim();if(!v)return;add(v,'me');chatIn.value='';chips.style.display='none';reply(v);};
+chips.querySelectorAll('button').forEach(b=>b.onclick=()=>{add(b.textContent,'me');chips.style.display='none';reply(b.textContent);});
+</script>
+</body>
+</html>
