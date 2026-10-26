@@ -1,0 +1,17 @@
+:root{--sp-ink:#1d2433;--sp-paper:#fbfaf7;--sp-line:#e3e0d8;--sp-brand:#0f6b5c;--sp-brand-ink:#fff;--sp-user:#e8f1ee;--sp-warn:#8a4b00}
+@media (prefers-color-scheme:dark){:root{--sp-ink:#eceff4;--sp-paper:#1b2029;--sp-line:#343b49;--sp-brand:#3cb8a0;--sp-brand-ink:#0d1a17;--sp-user:#23332f;--sp-warn:#f0b36a}}
+#sp-launch{position:fixed;right:20px;bottom:20px;z-index:9998;width:56px;height:56px;border-radius:50%;border:0;background:var(--sp-brand);color:var(--sp-brand-ink);font:600 15px system-ui;cursor:pointer}
+#sp-panel{position:fixed;right:20px;bottom:88px;z-index:9999;width:min(380px,calc(100vw - 24px));height:min(560px,calc(100vh - 110px));display:none;flex-direction:column;background:var(--sp-paper);color:var(--sp-ink);border:1px solid var(--sp-line);border-radius:14px;overflow:hidden;font:15px/1.45 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+#sp-panel.open{display:flex}
+#sp-head{padding:14px 16px;border-bottom:1px solid var(--sp-line);font-weight:650}
+#sp-head small{display:block;font-weight:400;opacity:.7}
+#sp-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.sp-msg{max-width:85%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+.sp-bot{background:transparent;border:1px solid var(--sp-line);align-self:flex-start;border-bottom-left-radius:4px}
+.sp-me{background:var(--sp-user);align-self:flex-end;border-bottom-right-radius:4px}
+.sp-note{align-self:center;font-size:13px;color:var(--sp-warn)}
+#sp-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--sp-line)}
+#sp-input{flex:1;padding:10px 12px;border:1px solid var(--sp-line);border-radius:10px;background:transparent;color:inherit;font:inherit}
+#sp-send{padding:0 16px;border:0;border-radius:10px;background:var(--sp-brand);color:var(--sp-brand-ink);font-weight:600;cursor:pointer}
+#sp-launch:focus-visible,#sp-send:focus-visible,#sp-input:focus-visible{outline:2px solid var(--sp-brand);outline-offset:2px}
+.sp-typing{opacity:.6;font-style:italic}
